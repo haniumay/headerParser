@@ -5,6 +5,9 @@
 var express = require('express');
 var app = express();
 
+// trust the proxy (Render) so the real client IP is available
+app.set('trust proxy', true);
+
 // enable CORS so freeCodeCamp can test your API
 var cors = require('cors');
 app.use(cors({ optionsSuccessStatus: 200 })); // some legacy browsers choke on 204
@@ -22,29 +25,15 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: 'hello API' });
 });
 
-// timestamp endpoint
-app.get("/api/:date?", function (req, res) {
-  const { date } = req.params;
-  let parsedDate;
-
-  if (!date) {
-    // empty parameter: current time
-    parsedDate = new Date();
-  } else if (/^-?\d+$/.test(date)) {
-    // only digits: treat as a Unix timestamp in milliseconds
-    parsedDate = new Date(parseInt(date, 10));
-  } else {
-    // any other string: let Date parse it
-    parsedDate = new Date(date);
-  }
-
-  if (isNaN(parsedDate.getTime())) {
-    return res.json({ error: "Invalid Date" });
-  }
+// request header parser endpoint
+app.get("/api/whoami", function (req, res) {
+  const forwarded = req.headers['x-forwarded-for'];
+  const ipaddress = forwarded ? forwarded.split(',')[0].trim() : req.ip;
 
   res.json({
-    unix: parsedDate.getTime(),
-    utc: parsedDate.toUTCString()
+    ipaddress: ipaddress,
+    language: req.headers['accept-language'],
+    software: req.headers['user-agent']
   });
 });
 
